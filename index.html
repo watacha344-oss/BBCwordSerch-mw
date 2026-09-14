@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BBC WORD SEARCH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;0,700;1,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --ink: #0a0a0a;
+    --ink-soft: #5c5c5c;
+    --rule: #0a0a0a;
+    --rule-faint: #d4d4d4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 32px 20px 70px;
+  }
+  header {
+    border-bottom: 4px solid var(--ink);
+    padding-bottom: 16px;
+    margin-bottom: 22px;
+  }
+  .masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  header h1 {
+    font-family: 'Newsreader', serif;
+    font-weight: 700;
+    font-style: italic;
+    font-size: 30px;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .sub {
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-align: right;
+    line-height: 1.6;
+  }
+  .search-row {
+    display: flex;
+    gap: 0;
+    margin-bottom: 4px;
+  }
+  input[type="text"] {
+    flex: 1;
+    font-family: 'Newsreader', serif;
+    font-size: 21px;
+    padding: 12px 14px;
+    border: 3px solid var(--ink);
+    border-right: none;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  input[type="text"]:focus { outline: none; }
+  button {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    border: 3px solid var(--ink);
+    cursor: pointer;
+    background: var(--ink);
+    color: var(--bg);
+    padding: 0 22px;
+  }
+  button:hover { background: var(--bg); color: var(--ink); }
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin: 12px 0 24px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--rule-faint);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .btn-reload {
+    background: var(--bg);
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    padding: 5px 12px;
+    font-size: 11px;
+  }
+  .btn-reload:hover { background: var(--ink); color: var(--bg); }
+  .empty {
+    font-family: 'Newsreader', serif;
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 17px;
+    padding: 44px 4px;
+    line-height: 1.7;
+  }
+  .result-count {
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    color: var(--ink-soft);
+    margin-bottom: 16px;
+  }
+  .result-count b { color: var(--ink); }
+  .sentence-card {
+    border-bottom: 1px solid var(--rule-faint);
+    padding: 18px 2px;
+  }
+  .sentence-card p {
+    font-family: 'Newsreader', serif;
+    font-size: 19px;
+    line-height: 1.7;
+    margin: 0 0 9px;
+  }
+  .sentence-card mark {
+    background: var(--ink);
+    color: var(--bg);
+    padding: 0 3px;
+  }
+  .meta {
+    font-size: 11px;
+    color: var(--ink-soft);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .meta a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--ink); }
+  .meta a:hover { color: var(--ink-soft); border-color: var(--ink-soft); }
+  .tag {
+    border: 1px solid var(--rule-faint);
+    padding: 2px 8px;
+  }
+  footer {
+    margin-top: 40px;
+    font-size: 11px;
+    color: var(--ink-soft);
+    border-top: 1px solid var(--rule-faint);
+    padding-top: 14px;
+    line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="masthead">
+      <h1>BBC Word Search</h1>
+      <div class="sub" id="stamp">読み込み中…</div>
+    </div>
+  </header>
+
+  <div class="search-row">
+    <input type="text" id="wordInput" placeholder="economy, climate, decision…" autocomplete="off">
+    <button id="searchBtn">検索</button>
+  </div>
+
+  <div class="status-bar">
+    <span id="statusText"></span>
+    <button class="btn-reload" id="reloadBtn">最新データを再読込</button>
+  </div>
+
+  <div id="results">
+    <div class="empty">単語を入力すると、自動収集されたBBC記事からその単語を含む例文を探します。</div>
+  </div>
+
+  <footer>
+    記事はGitHub Actionsが3時間ごとに自動取得し、このページと同じリポジトリ内のdata/articles.jsonに保存しています。ページを開いていない間も裏で収集は続きます。
+  </footer>
+</div>
+
+<script>
+let articles = [];
+
+function setStatus(text) {
+  document.getElementById('statusText').textContent = text;
+}
+
+function updateStamp() {
+  const stamp = document.getElementById('stamp');
+  if (articles.length === 0) {
+    stamp.textContent = '記事: 0件';
+    return;
+  }
+  const latest = articles.reduce((max, a) => {
+    const t = new Date(a.fetchedAt).getTime();
+    return t > max ? t : max;
+  }, 0);
+  const d = new Date(latest);
+  stamp.innerHTML = `記事: ${articles.length}件<br>最終取得: ${d.toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'})}`;
+}
+
+async function loadData() {
+  setStatus('データを読み込んでいます…');
+  try {
+    const res = await fetch('data/articles.json?t=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    articles = await res.json();
+    setStatus(articles.length > 0 ? '読み込み完了' : 'まだ記事がありません(初回のActions実行を待ってください)');
+  } catch (e) {
+    setStatus('データの読み込みに失敗しました: ' + e.message);
+    articles = [];
+  }
+  updateStamp();
+}
+
+function splitSentences(text) {
+  if (!text) return [];
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  const matches = cleaned.match(/[^.!?]+[.!?]+(\s|$)/g);
+  const sentences = matches ? matches.map(s => s.trim()) : (cleaned ? [cleaned] : []);
+  return sentences.filter(s => s.split(' ').length >= 3);
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function highlightWord(sentence, word) {
+  const escaped = escapeHtml(sentence);
+  const re = new RegExp('\\b(' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')\\b', 'gi');
+  return escaped.replace(re, '<mark>$1</mark>');
+}
+
+function timeAgo(pubDate) {
+  const d = new Date(pubDate);
+  if (isNaN(d)) return '';
+  return d.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+}
+
+function search(word) {
+  const resultsEl = document.getElementById('results');
+  word = word.trim();
+  if (!word) {
+    resultsEl.innerHTML = '<div class="empty">検索したい英単語を入力してください。</div>';
+    return;
+  }
+  if (articles.length === 0) {
+    resultsEl.innerHTML = '<div class="empty">まだ記事がありません。しばらくしてから「最新データを再読込」を押してください。</div>';
+    return;
+  }
+
+  const re = new RegExp('\\b' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+  const found = [];
+  const seenSentences = new Set();
+  const sorted = [...articles].sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+  for (const article of sorted) {
+    const allText = article.title + '. ' + article.description;
+    for (const s of splitSentences(allText)) {
+      if (re.test(s) && !seenSentences.has(s)) {
+        seenSentences.add(s);
+        found.push({ sentence: s, article });
+      }
+    }
+  }
+
+  if (found.length === 0) {
+    resultsEl.innerHTML = `<div class="empty">「${escapeHtml(word)}」を含む例文は見つかりませんでした。</div>`;
+    return;
+  }
+
+  const countHtml = `<div class="result-count"><b>${found.length}</b>件の例文が見つかりました</div>`;
+  const cards = found.slice(0, 60).map(({ sentence, article }) => `
+    <div class="sentence-card">
+      <p>${highlightWord(sentence, word)}</p>
+      <div class="meta">
+        <span class="tag">${escapeHtml(article.tag || '')}</span>
+        <span>${timeAgo(article.pubDate)}</span>
+        ${article.link ? `<a href="${escapeHtml(article.link)}" target="_blank" rel="noopener">記事を見る →</a>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  resultsEl.innerHTML = countHtml + cards;
+}
+
+document.getElementById('searchBtn').addEventListener('click', () => search(document.getElementById('wordInput').value));
+document.getElementById('wordInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') search(e.target.value);
+});
+document.getElementById('reloadBtn').addEventListener('click', loadData);
+
+loadData();
+</script>
+</body>
+</html>
