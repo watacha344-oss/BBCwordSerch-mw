@@ -261,7 +261,7 @@ function search(word) {
   const sorted = [...articles].sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
 
   for (const article of sorted) {
-    const allText = article.title + '. ' + article.description;
+    const allText = article.title + '. ' + article.description + ' ' + (article.body || '');
     for (const s of splitSentences(allText)) {
       if (re.test(s) && !seenSentences.has(s)) {
         seenSentences.add(s);
