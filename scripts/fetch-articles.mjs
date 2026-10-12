@@ -19,7 +19,7 @@ const FEEDS = [
 ];
 
 const DATA_PATH = 'data/articles.json';
-const MAX_ARTICLES = 3000;
+const MAX_ARTICLES = 10000;
 const MAX_NEW_PER_RUN = 200;   // safety cap so one run can't fetch forever
 const BODY_CHAR_LIMIT = 6000;  // per-article cap so the JSON file stays reasonable
 const REQUEST_DELAY_MS = 250;  // be polite to BBC's servers between article fetches
@@ -151,7 +151,7 @@ async function main() {
   existing.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
   if (existing.length > MAX_ARTICLES) existing = existing.slice(0, MAX_ARTICLES);
 
-  writeFileSync(DATA_PATH, JSON.stringify(existing, null, 2));
+  writeFileSync(DATA_PATH, JSON.stringify(existing));
   console.log(`Done. ${addedCount} new article(s) added (with full body). Total stored: ${existing.length}`);
 }
 
